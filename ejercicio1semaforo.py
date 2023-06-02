@@ -4,10 +4,8 @@ import random
 import logging
 
 energia = 0
-num_medidores = 0
-
+sem = threading.Semaphore(2)
 lock = threading.Lock()
-no_maximo = threading.Condition()
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d [%(threadName)s] - %(message)s', datefmt='%H:%M:%S',
                     level=logging.INFO)
@@ -16,11 +14,11 @@ def generador():
     global energia
 
     while True:
-        no_maximo.acquire()
+        lock.acquire()
         try:
             energia += 1
         finally:
-            no_maximo.release()
+            lock.release()
             time.sleep(random.randint(1, 2) / 100)
 
 
@@ -30,26 +28,23 @@ def medidor():
     while True:
             valor0 = 0
             valor1 = 0
-            no_maximo.acquire()
+            sem.acquire()
+            lock.acquire()
             try:
-                while num_medidores == 2:
-                    no_maximo.wait()
-                num_medidores += 1
                 valor0 = energia
                 logging.info(f'{threading.current_thread().name} esta midiendo')
             finally:
-                no_maximo.release()
+                lock.release()
                 time.sleep(1)
-            no_maximo.acquire()
+            lock.acquire()
             try:
                 valor1 = energia
                 logging.info(f'La potencia generada es {valor1 - valor0} Kw')
-                num_medidores -=1
             finally:
-                no_maximo.notify()
-                no_maximo.release()
-
-            time.sleep(random.randint(1,5))
+                lock.release()
+                sem.release()
+            
+            time.sleep(random.randint(5,15))
 
 hilos = []
 

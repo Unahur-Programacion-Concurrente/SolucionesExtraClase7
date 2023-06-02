@@ -7,7 +7,7 @@ energia = 0
 num_medidores = 0
 
 lock = threading.Lock()
-no_maximo = threading.Condition()
+no_maximo = threading.Condition(lock)
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d [%(threadName)s] - %(message)s', datefmt='%H:%M:%S',
                     level=logging.INFO)
@@ -16,11 +16,11 @@ def generador():
     global energia
 
     while True:
-        no_maximo.acquire()
+        lock.acquire()
         try:
             energia += 1
         finally:
-            no_maximo.release()
+            lock.release()
             time.sleep(random.randint(1, 2) / 100)
 
 
@@ -31,6 +31,7 @@ def medidor():
             valor0 = 0
             valor1 = 0
             no_maximo.acquire()
+         #   logging.info(f'lock adquirido {lock.locked()}')
             try:
                 while num_medidores == 2:
                     no_maximo.wait()
@@ -48,7 +49,7 @@ def medidor():
             finally:
                 no_maximo.notify()
                 no_maximo.release()
-
+            
             time.sleep(random.randint(1,5))
 
 hilos = []
